@@ -15,7 +15,7 @@ export const site = {
   tagline:
     "八德地區小班制升學補習班，專注國中會考、國一銜接、小五小六數學、私中與數資準備。",
   // 網站正式網址（部署後請改成你的網域，用於 SEO）
-  url: "https://www.keda-school.com.tw",
+  url: "https://keda-cram-school.vercel.app/",
 };
 
 // -------------------------------------------------------------------

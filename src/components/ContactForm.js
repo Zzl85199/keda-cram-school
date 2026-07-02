@@ -4,17 +4,44 @@ import { useState } from "react";
 import { contact } from "@/lib/config";
 import Icon from "./Icons";
 
-// 預約試聽表單（目前僅前端畫面，尚未串接後端送出）
-//  送出後會提示家長改用 LINE 或電話，確保訊息一定收得到。
-//  日後要真正收件，可在 handleSubmit 內串接表單服務（README 有說明）。
-const grades = ["小五", "小六", "國一", "國二", "國三", "其他"];
+// 預約試聽表單 — 已串接 Formspree，送出後會真正寄信到後台。
+//  Formspree 表單網址：https://formspree.io/f/mbdvpkwq
+//  若要換成別的收件信箱／表單服務，改下面的 FORMSPREE_ENDPOINT 即可。
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mbdvpkwq";
+
+const grades = ["小一", "小二", "小三", "小四", "小五", "小六", "國一", "國二", "國三", "其他"];
 
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(false);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    setSubmitted(true);
+    setSubmitting(true);
+    setError(false);
+
+    const form = e.target;
+    const data = new FormData(form);
+
+    try {
+      const res = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        body: data,
+        headers: { Accept: "application/json" },
+      });
+
+      if (res.ok) {
+        setSubmitted(true);
+        form.reset();
+      } else {
+        setError(true);
+      }
+    } catch (err) {
+      setError(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const fieldClass =
@@ -91,8 +118,18 @@ export default function ContactForm() {
         />
       </label>
 
-      <button type="submit" className="btn-primary w-full sm:w-auto sm:self-start">
-        送出預約需求
+      {error && (
+        <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+          送出失敗，請稍後再試，或直接改用 LINE / 電話與我們聯繫。
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="btn-primary w-full sm:w-auto sm:self-start disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {submitting ? "送出中…" : "送出預約需求"}
         <Icon name="arrow" className="h-4 w-4" />
       </button>
       <p className="text-xs text-ink-muted">
