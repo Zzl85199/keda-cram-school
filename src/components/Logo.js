@@ -23,7 +23,7 @@ export default function Logo({ light = false }) {
             light ? "text-white/70" : "text-ink-muted"
           }`}
         >
-          BADE · CRAM SCHOOL
+          八德 · 文理技藝補習班
         </span>
       </span>
     </Link>
