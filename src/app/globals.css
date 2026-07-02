@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-white text-ink font-sans antialiased;
+    text-wrap: pretty;
+  }
+  h1, h2, h3, h4 {
+    @apply font-serif;
+    text-wrap: balance;
+  }
+  /* 鍵盤操作時清楚的焦點外框（無障礙） */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-white rounded-lg;
+  }
+}
+
+@layer components {
+  /* 內容寬度容器 */
+  .container-x {
+    @apply mx-auto w-full max-w-content px-5 sm:px-6 lg:px-8;
+  }
+
+  /* 小標籤（eyebrow） */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-sm font-medium tracking-wide text-brand-deep;
+  }
+  .eyebrow::before {
+    content: "";
+    @apply h-px w-6 bg-brand/50;
+  }
+
+  /* 主要按鈕（琥珀色，溫暖、吸睛） */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3
+           text-base font-semibold text-white shadow-soft transition
+           hover:bg-accent-deep hover:-translate-y-0.5 active:translate-y-0;
+  }
+  /* 次要按鈕（品牌綠） */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-brand px-6 py-3
+           text-base font-semibold text-white shadow-soft transition
+           hover:bg-brand-deep hover:-translate-y-0.5 active:translate-y-0;
+  }
+  /* 外框按鈕 */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-line
+           bg-white px-6 py-3 text-base font-semibold text-ink transition
+           hover:border-brand hover:text-brand-deep;
+  }
+
+  /* 圓角卡片 */
+  .card {
+    @apply rounded-3xl border border-line bg-white p-6 shadow-card transition sm:p-7;
+  }
+}
+
+/* 尊重使用者「減少動態效果」的系統設定 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
