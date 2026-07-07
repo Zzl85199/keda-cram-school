@@ -2,96 +2,110 @@
 //  相簿資料讀取  src/lib/gallery.js
 // -------------------------------------------------------------------
 //  負責：
-//   1. 從 Google 試算表的 CSV 連結抓照片清單
-//      （照片實際存放在 Google Drive，試算表只存「連結＋分類＋說明」）
-//   2. 過濾掉沒有圖片網址、或標記「隱藏」的照片
-//   3. 依 sort_order 排序
-//   4. 依 category 分組，方便做分類相簿頁籤
-//   5. 任何環節失敗，就顯示「尚未設定照片」的空狀態，不會讓網站壞掉
+//   1. 讀取 public/gallery/ 資料夾裡的照片（不再依賴 Google 試算表／Drive）
+//   2. 資料夾名稱＝分類，檔名開頭數字＝排序，檔名底線後的文字＝說明文字
+//   3. 依分類分組，方便做分類相簿頁籤
+//   4. 任何環節失敗，就顯示空狀態，不會讓網站壞掉
 //
 //  照片管理方式請看 README.md 的「校園相簿設定」章節。
-//  ※ 一般維護不需要動這個檔案。
+//  ※ 一般維護只要在 public/gallery/ 底下拖放圖片即可，不需要碰這個檔案。
 // ===================================================================
 
-import { fetchSheetAsObjects } from "@/lib/csv";
+import fs from "node:fs";
+import path from "node:path";
 
-// -------------------------------------------------------------------
-//  把 Google Drive 的一般分享連結，轉成可以直接當 <img> 顯示的網址
-//  支援兩種輸入：
-//   1. 已經是可直接顯示的網址（http開頭）→ 原樣使用
-//   2. Drive 分享連結（含 /d/檔案ID/ 或 id=檔案ID）→ 自動轉換
-//  ※ 試算表建議直接用「image_url」欄位放已轉換好的連結（用公式產生，
-//     見 README），這裡多做一層保護，避免主任不小心貼錯格式。
-// -------------------------------------------------------------------
-function toDirectImageUrl(raw) {
-  if (!raw) return "";
-  const value = raw.trim();
+const GALLERY_ROOT = path.join(process.cwd(), "public", "gallery");
+const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
 
-  const idMatch = value.match(/\/d\/([a-zA-Z0-9_-]+)/) || value.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (idMatch) {
-    return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+// 資料夾／檔案名稱如果用「_」開頭，代表暫時隱藏，不會顯示在網站上
+function isHidden(name) {
+  return name.startsWith("_") || name === "隱藏";
+}
+
+// 把檔名／資料夾名稱拆成「排序數字」跟「顯示文字」
+// 支援："01-三樓國中部教室.jpg" 或 "三樓國中部教室.jpg"（沒數字就用預設順序）
+function parseName(rawName) {
+  const match = rawName.match(/^(\d+)[-_](.+)$/);
+  if (match) {
+    return { order: Number.parseInt(match[1], 10), label: match[2] };
   }
-  return value; // 不是 Drive 連結，就當作已經是直接圖片網址
+  return { order: 999, label: rawName };
 }
 
-// 整理單筆照片資料的格式
-function normalizePhoto(raw, index) {
-  return {
-    id: raw.id || String(index + 1),
-    image_url: toDirectImageUrl(raw.image_url || raw.drive_link),
-    category: (raw.category || "未分類").trim(),
-    caption: raw.caption || "",
-    sort_order: Number.parseInt(raw.sort_order, 10) || 999,
-    status: (raw.status || "顯示").trim(),
-  };
-}
+// 讀取單一分類資料夾裡的所有圖片
+function readCategoryPhotos(categoryDir, categoryLabel, categoryOrder) {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(categoryDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
 
-// 過濾（沒圖片網址、或標記隱藏的都拿掉）＋排序
-function cleanAndSort(photos) {
-  return photos
-    .filter((p) => p.image_url && p.status !== "隱藏")
+  return entries
+    .filter((entry) => entry.isFile())
+    .filter((entry) => !isHidden(entry.name))
+    .filter((entry) => IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase()))
+    .map((entry) => {
+      const ext = path.extname(entry.name);
+      const baseName = entry.name.slice(0, -ext.length);
+      const { order, label } = parseName(baseName);
+      // 相簿資料夾用資料夾名稱當分類，URL 需要處理中文與空白
+      const encodedCategory = encodeURIComponent(path.basename(categoryDir));
+      const encodedFile = encodeURIComponent(entry.name);
+      return {
+        id: `${categoryOrder}-${entry.name}`,
+        image_url: `/gallery/${encodedCategory}/${encodedFile}`,
+        category: categoryLabel,
+        caption: label,
+        sort_order: order,
+      };
+    })
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
 // 依分類分組，回傳 [{ category, photos: [...] }, ...]
-// 分類順序＝該分類第一次出現在清單中的順序（不用另外設定）
-function groupByCategory(photos) {
-  const order = [];
-  const map = new Map();
-  for (const photo of photos) {
-    if (!map.has(photo.category)) {
-      map.set(photo.category, []);
-      order.push(photo.category);
-    }
-    map.get(photo.category).push(photo);
+// 分類順序＝資料夾名稱開頭數字（例如 01-教室環境、02-上課情境）
+function readAllCategories() {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(GALLERY_ROOT, { withFileTypes: true });
+  } catch {
+    return { groups: [], isConfigured: false };
   }
-  return order.map((category) => ({ category, photos: map.get(category) }));
+
+  const categoryDirs = entries
+    .filter((entry) => entry.isDirectory())
+    .filter((entry) => !isHidden(entry.name))
+    .map((entry) => {
+      const { order, label } = parseName(entry.name);
+      return { dirName: entry.name, order, label };
+    })
+    .sort((a, b) => a.order - b.order);
+
+  const groups = categoryDirs
+    .map(({ dirName, order, label }) => ({
+      category: label,
+      photos: readCategoryPhotos(path.join(GALLERY_ROOT, dirName), label, order),
+    }))
+    .filter((group) => group.photos.length > 0);
+
+  return { groups, isConfigured: true };
 }
 
 // -------------------------------------------------------------------
 //  對外的主要函式：取得相簿清單
 //  回傳 { photos, groups, isConfigured }
-//   - photos：全部照片（已排序、已過濾隱藏）
+//   - photos：全部照片（已排序）
 //   - groups：依分類分組後的結果
-//   - isConfigured = false 代表還沒設定試算表連結，畫面上要顯示引導文字
+//   - isConfigured = false 代表 public/gallery/ 底下還沒有任何分類資料夾
 // -------------------------------------------------------------------
 export async function getGalleryPhotos() {
-  const url = process.env.NEXT_PUBLIC_GALLERY_SHEET_URL;
-
-  if (!url || url.includes("PASTE_GOOGLE_SHEET_CSV_URL_HERE")) {
-    return { photos: [], groups: [], isConfigured: false };
-  }
-
   try {
-    const objects = await fetchSheetAsObjects(url);
-    const photos = cleanAndSort(objects.map(normalizePhoto));
-    return {
-      photos,
-      groups: groupByCategory(photos),
-      isConfigured: true,
-    };
+    const { groups, isConfigured } = readAllCategories();
+    const photos = groups.flatMap((g) => g.photos);
+    return { photos, groups, isConfigured };
   } catch (err) {
-    console.error("[gallery] 無法讀取 Google 試算表：", err);
+    console.error("[gallery] 無法讀取 public/gallery/：", err);
     return { photos: [], groups: [], isConfigured: true, hasError: true };
   }
 }

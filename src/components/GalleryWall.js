@@ -66,7 +66,6 @@ export default function GalleryWall({ groups }) {
                 fill
                 sizes="(min-width: 768px) 25vw, 50vw"
                 className="object-cover transition duration-500 group-hover:scale-110"
-                unoptimized
               />
               {photo.caption && (
                 <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-ink/80 to-transparent p-3 text-left text-xs leading-snug text-white transition group-hover:translate-y-0">

@@ -11,7 +11,7 @@
 3. [日常維護：改文字、電話、評價](#日常維護)
 4. [課程資料設定（Google 試算表）](#課程資料設定)
 5. [Google 試算表欄位說明與範例](#google-試算表欄位說明)
-6. [校園相簿設定（Google 試算表＋Google Drive）](#校園相簿設定)
+6. [校園相簿設定（本機資料夾）](#校園相簿設定)
 7. [榮譽榜設定（Google 試算表）](#榮譽榜設定)
 8. [部署上線](#部署上線)
 9. [常見問題](#常見問題)
@@ -24,7 +24,7 @@
 - **六個頁面**：首頁、課程介紹、教學特色、校園相簿、成果與評價、聯絡我們
 - **手機優先、響應式設計**：手機、平板、電腦都好看
 - **課程卡片自動產生**：直接讀取 Google 試算表，改試算表＝改網站
-- **校園相簿分類動態牆**：照片存 Google Drive，用 Google 試算表管理上傳／刪除／分類
+- **校園相簿分類動態牆**：照片直接放在 public/gallery/ 資料夾，依資料夾分類、依檔名排序
 - **榮譽榜動態展示**：跑馬燈牆＋數字動畫，用 Google 試算表管理榜單內容
 - **讀不到資料也不會壞**：會自動顯示預設課程或引導設定畫面
 - **一鍵撥號、加 LINE、Google 地圖導航**
@@ -150,74 +150,34 @@ NEXT_PUBLIC_COURSE_SHEET_URL="https://docs.google.com/spreadsheets/d/xxxx/pub?ou
 
 ## 校園相簿設定
 
-「校園相簿」頁面（`/gallery`）會自動讀取你的 Google 試算表，用**分類頁籤 ＋ 動態牆**呈現照片，點擊可放大瀏覽。
+「校園相簿」頁面（`/gallery`）會自動讀取 `public/gallery/` 資料夾裡的照片，用**分類頁籤 ＋ 動態牆**呈現，點擊可放大瀏覽。照片直接存在專案裡，不需要 Google 試算表或 Google Drive。
 
-> **為什麼不是直接串接「Google 相簿」App？**
-> Google 從 2025 年起大幅限縮了 Google 相簿的開放功能，網站已經沒辦法直接讀取你手機 App 裡既有的相簿了。這裡改用「**Google Drive 存放照片＋Google 試算表管理**」的方式，效果一樣（一樣可以隨時上傳、刪除、分類），但不會因為 Google 政策改變而失效，維護方式也跟課程資料完全一樣。
+### 資料夾結構
 
-### 步驟 1：把照片放到 Google Drive
+```
+public/gallery/
+├─ 01-教室環境/
+│   ├─ 01-三樓國中部教室.jpg
+│   └─ 02-四樓高中部教室.jpg
+├─ 02-上課情境/
+│   └─ 01-小班教學.jpg
+└─ 03-活動花絮/
+    └─ 01-結業典禮.jpg
+```
 
-1. 到 [Google Drive](https://drive.google.com) 建一個資料夾，例如「科達官網照片」。
-2. 把要用的照片上傳進去（68 張都可以直接拖進去，不用先分類資料夾）。
-3. 對資料夾按右鍵 →「共用」→「知道連結的使用者」設為「**檢視者**」，確保網站抓得到圖片。
+- **最外層資料夾＝分類**：資料夾名稱會變成相簿的分類頁籤。
+- **資料夾／檔名開頭的數字＋「-」或「_」＝排序**：數字越小排越前面（例如 `01-`、`02-`）。不加數字也可以，會排在最後面。
+- **檔名數字後面的文字＝照片說明**：會顯示在照片下方（可以不寫，只留數字）。
+- **要暫時隱藏，把資料夾或檔名改成「_」開頭**（例如 `_草稿`），網站就不會顯示，也不用真的刪除檔案。
 
-### 步驟 2：建立試算表
+### 新增／刪除照片
 
-1. 到 [Google 試算表](https://sheets.google.com) 新增一份空白試算表。
-2. 第一列填入這 6 個欄位名稱：
+1. 把照片檔案（`.jpg`／`.png`／`.webp` 皆可）拖進對應分類資料夾。
+2. 用 GitHub 網頁版「Add file → Upload files」上傳，或用 Git 指令 push 上去。
+3. Vercel 會自動重新部署，幾分鐘後網站就會更新。
+4. 要刪除照片，就直接刪掉該檔案再重新上傳／push。
 
-   ```
-   id  drive_link  image_url  category  caption  sort_order  status
-   ```
-
-3. 從第二列開始，**一列填一張照片**：
-   - `drive_link`：到 Drive 裡對照片按右鍵 →「取得連結」，貼在這裡。
-   - `image_url`：**不用手動填**，用公式自動產生（見下方），會自動把 `drive_link` 轉成網站看得懂的直接連結。
-   - `category`：分類名稱，直接打中文即可，例如「教室環境」「上課情境」「活動花絮」「招牌外觀」。**分類頁籤會依照片出現順序自動產生**，不用另外設定。
-   - `caption`：照片下方的說明文字（選填，留空也可以）。
-   - `sort_order`：數字，越小排越前面。
-   - `status`：留空＝顯示；填「隱藏」＝暫時不顯示（不用刪除整列）。
-
-4. 在 `image_url` 欄（例如 C 欄）第一格公式列輸入，再往下拖曳套用到每一列：
-
-   ```
-   =IFERROR("https://drive.google.com/uc?export=view&id="&REGEXEXTRACT(B2,"/d/([a-zA-Z0-9_-]+)"),"")
-   ```
-
-   （`B2` 是 `drive_link` 那一格，如果欄位順序不同請自行調整字母。）
-
-### 步驟 3：發佈成 CSV 連結，貼進設定檔
-
-跟課程資料設定完全一樣的做法：
-
-1. **檔案 → 共用 → 發布到網路**，選這張工作表，格式選 **逗號分隔值 (.csv)**，按發布，複製網址。
-2. 打開 `.env.local`，貼進去：
-
-   ```env
-   NEXT_PUBLIC_GALLERY_SHEET_URL="https://docs.google.com/spreadsheets/d/xxxx/pub?output=csv"
-   ```
-
-3. 存檔後重新啟動（`npm run dev`）。網站每 5 分鐘會自動抓一次最新資料。
-
-### 之後怎麼新增／刪除照片
-
-| 想做什麼 | 怎麼做 |
-|---|---|
-| **新增照片** | Drive 上傳照片 → 取得連結 → 試算表新增一列，貼連結、填分類 |
-| **刪除照片** | 試算表把那一列整列刪除即可 |
-| **暫時下架，之後還要用** | 不刪除，把該列 `status` 填「隱藏」 |
-| **調整順序** | 改 `sort_order` 數字 |
-| **新增一個分類** | 直接在 `category` 欄打新的分類名稱，頁籤會自動出現 |
-
-### 範例資料（可直接複製到試算表）
-
-| id | drive_link | image_url | category | caption | sort_order | status |
-|---|---|---|---|---|---|---|
-| 1 | https://drive.google.com/file/d/xxxx1/view | （公式自動產生） | 教室環境 | 三樓國中部教室 | 1 | |
-| 2 | https://drive.google.com/file/d/xxxx2/view | （公式自動產生） | 上課情境 | 國一數學小班上課 | 2 | |
-| 3 | https://drive.google.com/file/d/xxxx3/view | （公式自動產生） | 活動花絮 | 畢業成果發表 | 3 | |
-
----
+> **上傳前建議先壓縮照片**（寬度約 1600~2000px、JPEG 品質 75~80%），可以用 [Squoosh](https://squoosh.app) 之類的工具處理。這樣可以避免 GitHub 倉庫越來越肥大，網站也會載入更快。iPhone 拍的 `.HEIC` 檔案瀏覽器無法直接顯示，請先轉成 `.jpg`。
 
 ## 榮譽榜設定
 
@@ -285,10 +245,9 @@ NEXT_PUBLIC_COURSE_SHEET_URL="https://docs.google.com/spreadsheets/d/xxxx/pub?ou
 3. 在 Vercel 專案的 **Settings → Environment Variables** 新增：
    - 名稱：`NEXT_PUBLIC_COURSE_SHEET_URL`
    - 值：你的課程 Google 試算表 CSV 連結
-   - 名稱：`NEXT_PUBLIC_GALLERY_SHEET_URL`
-   - 值：你的相簿 Google 試算表 CSV 連結
    - 名稱：`NEXT_PUBLIC_HONORS_SHEET_URL`
    - 值：你的榮譽榜 Google 試算表 CSV 連結
+   （校園相簿不需要設定環境變數，照片直接放在 `public/gallery/` 資料夾裡即可，見上方「校園相簿設定」章節。）
 4. 按 **Deploy**，幾分鐘後就會有正式網址。
 
 > 上線後別忘了把 `src/lib/config.js` 裡的 `site.url` 改成你的正式網域，SEO 才正確。
@@ -340,5 +299,4 @@ keda-cram-school/
    └─ data/
       └─ fallbackCourses.js ← 備援課程資料
 ```
-#   k e d a - c r a m - s c h o o l  
- 
+#

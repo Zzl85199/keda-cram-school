@@ -35,7 +35,7 @@ export default async function GalleryPage() {
   );
 }
 
-// 還沒設定試算表，或試算表目前是空的，顯示引導文字（不是網站壞掉）
+// 還沒放照片，或資料夾結構有誤，顯示引導文字（不是網站壞掉）
 function EmptyState({ isConfigured, hasError }) {
   return (
     <div className="mx-auto max-w-md rounded-3xl border border-dashed border-line bg-cream px-8 py-14 text-center">
@@ -44,10 +44,10 @@ function EmptyState({ isConfigured, hasError }) {
       </p>
       <p className="mt-3 text-sm leading-relaxed text-ink-soft">
         {!isConfigured
-          ? "請照 README.md 的「校園相簿設定」章節，設定好 Google 試算表連結，照片就會自動顯示在這裡。"
+          ? "請照 README.md 的「校園相簿設定」章節，把照片放進 public/gallery/ 底下對應的分類資料夾。"
           : hasError
-          ? "請確認 Google 試算表已「發布到網路」，且格式為 CSV，稍後重新整理即可。"
-          : "請在 Google 試算表中新增照片列，存檔後幾分鐘內就會顯示。"}
+          ? "讀取 public/gallery/ 資料夾時發生錯誤，請確認資料夾與檔名格式正確。"
+          : "請在 public/gallery/ 底下的分類資料夾中放入照片。"}
       </p>
     </div>
   );
