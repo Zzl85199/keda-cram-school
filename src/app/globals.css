@@ -72,6 +72,21 @@
   }
 }
 
+/* 用完整 class（不是 Tailwind 任意值）寫動畫，
+   確保 animation-fill-mode:forwards 跟動畫本身在同一個宣告裡，
+   不會被 Tailwind 產生的 CSS 順序覆蓋，導致動畫播完後跳回透明 */
+.gallery-fade-in {
+  opacity: 0;
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-fade-in {
+    opacity: 1;
+    animation: none;
+  }
+}
+
 /* 榮譽榜跑馬燈：內容重複兩份，跑滿一份的寬度就無縫接回起點 */
 @keyframes marquee-left {
   from {

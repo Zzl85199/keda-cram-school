@@ -63,7 +63,7 @@ export default function GalleryWall({ groups }) {
             <button
               key={photo.id}
               onClick={() => setLightboxIndex(i)}
-              className="group relative aspect-square overflow-hidden rounded-2xl border border-line bg-brand-soft opacity-0 shadow-card [animation-fill-mode:forwards] motion-safe:animate-[fadeUp_0.6s_ease-out]"
+              className="gallery-fade-in group relative aspect-square overflow-hidden rounded-2xl border border-line bg-brand-soft shadow-card"
               style={{ animationDelay: `${Math.min(i, 20) * 60}ms` }}
             >
               <Image
