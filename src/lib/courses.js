@@ -12,71 +12,10 @@
 // ===================================================================
 
 import { fallbackCourses } from "@/data/fallbackCourses";
+import { parseCsv, rowsToObjects } from "@/lib/csv";
 
 // 認得的招生狀態（其餘狀態仍會顯示，但用預設樣式）
 export const KNOWN_STATUSES = ["招生中", "即將開課", "額滿", "已開課"];
-
-// -------------------------------------------------------------------
-//  小型 CSV 解析器
-//  支援被雙引號包住、內含逗號或換行的欄位。
-// -------------------------------------------------------------------
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
-
-  // 去除 Windows 換行，統一成 \n
-  const input = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-
-  for (let i = 0; i < input.length; i++) {
-    const char = input[i];
-
-    if (inQuotes) {
-      if (char === '"') {
-        if (input[i + 1] === '"') {
-          field += '"'; // 連續兩個引號代表一個引號
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += char;
-      }
-    } else if (char === '"') {
-      inQuotes = true;
-    } else if (char === ",") {
-      row.push(field);
-      field = "";
-    } else if (char === "\n") {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-    } else {
-      field += char;
-    }
-  }
-  // 收尾：最後一個欄位 / 最後一列
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-  return rows;
-}
-
-// 把 CSV 表格轉成一筆筆物件（用第一列當欄位名稱）
-function rowsToObjects(rows) {
-  if (rows.length < 2) return [];
-  const headers = rows[0].map((h) => h.trim());
-  return rows.slice(1).map((cols) => {
-    const obj = {};
-    headers.forEach((key, idx) => {
-      obj[key] = (cols[idx] ?? "").trim();
-    });
-    return obj;
-  });
-}
 
 // 把 features 字串拆成陣列（支援「、」與「,」兩種分隔）
 function splitFeatures(value) {

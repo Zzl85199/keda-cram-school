@@ -2,7 +2,9 @@ import PageHero from "@/components/PageHero";
 import { Section, SectionHeading } from "@/components/Section";
 import TrustSection from "@/components/TrustSection";
 import ContactSection from "@/components/ContactSection";
+import HonorWall from "@/components/HonorWall";
 import { stats } from "@/lib/config";
+import { getHonors } from "@/lib/honors";
 import Icon from "@/components/Icons";
 
 export const metadata = {
@@ -27,7 +29,10 @@ const achievements = [
   },
 ];
 
-export default function ResultsPage() {
+export default async function ResultsPage() {
+  const { groups, stats: honorStats, isConfigured, hasError } = await getHonors();
+  const hasHonors = groups.length > 0;
+
   return (
     <>
       <PageHero
@@ -66,10 +71,42 @@ export default function ResultsPage() {
         </div>
       </Section>
 
+      {/* 榮譽榜（真實榜單，資料來自 Google 試算表） */}
+      <Section tone="cream">
+        <SectionHeading
+          eyebrow="榮譽榜"
+          title="科達孩子的好成績，都在這裡"
+          description="會考成績、私中榜、競賽獲獎、獎學金……每一項都是孩子踏實努力的成果。"
+        />
+        {hasHonors ? (
+          <HonorWall groups={groups} stats={honorStats} />
+        ) : (
+          <HonorsEmptyState isConfigured={isConfigured} hasError={hasError} />
+        )}
+      </Section>
+
       {/* 家長評價（共用首頁元件） */}
       <TrustSection />
 
       <ContactSection tone="white" />
     </>
+  );
+}
+
+// 還沒設定試算表，或試算表目前是空的，顯示引導文字（不是網站壞掉）
+function HonorsEmptyState({ isConfigured, hasError }) {
+  return (
+    <div className="mx-auto max-w-md rounded-3xl border border-dashed border-line bg-white px-8 py-14 text-center">
+      <p className="text-lg font-semibold text-ink">
+        {!isConfigured ? "榮譽榜還沒開始設定" : hasError ? "目前讀不到榮譽榜資料" : "目前還沒有榮譽榜項目"}
+      </p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+        {!isConfigured
+          ? "請照 README.md 的「榮譽榜設定」章節，設定好 Google 試算表連結，榜單就會自動顯示在這裡。"
+          : hasError
+          ? "請確認 Google 試算表已「發布到網路」，且格式為 CSV，稍後重新整理即可。"
+          : "請在 Google 試算表中新增榮譽榜列，存檔後幾分鐘內就會顯示。"}
+      </p>
+    </div>
   );
 }

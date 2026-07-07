@@ -60,6 +60,36 @@
   }
 }
 
+/* 相簿動態牆：卡片進場淡入上移 */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 榮譽榜跑馬燈：內容重複兩份，跑滿一份的寬度就無縫接回起點 */
+@keyframes marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes marquee-right {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* 尊重使用者「減少動態效果」的系統設定 */
 @media (prefers-reduced-motion: reduce) {
   * {
