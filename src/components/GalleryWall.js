@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Icon from "./Icons";
 
 // 校園相簿：分類頁籤 ＋ 動態牆（進場淡入上移）＋ 點擊放大燈箱
-// 資料來源：src/lib/gallery.js（讀取 Google 試算表 CSV）
+// 資料來源：src/lib/gallery.js（讀取 public/gallery/ 資料夾）
 export default function GalleryWall({ groups }) {
   const categories = useMemo(() => groups.map((g) => g.category), [groups]);
   const [active, setActive] = useState("全部");
@@ -15,8 +15,14 @@ export default function GalleryWall({ groups }) {
   const visiblePhotos = active === "全部" ? allPhotos : groups.find((g) => g.category === active)?.photos ?? [];
 
   // 切換分類時，燈箱關閉，並讓卡片重新觸發進場動畫
+  // （用 ref 跳過第一次載入時的執行，避免照片剛淡入顯示就被整批重新掛載、閃一下)
   const [wallKey, setWallKey] = useState(0);
+  const isFirstRun = useRef(true);
   useEffect(() => {
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
     setLightboxIndex(null);
     setWallKey((k) => k + 1);
   }, [active]);
@@ -62,16 +68,11 @@ export default function GalleryWall({ groups }) {
             >
               <Image
                 src={photo.image_url}
-                alt={photo.caption || "科達文理補習班照片"}
+                alt="科達文理補習班照片"
                 fill
                 sizes="(min-width: 768px) 25vw, 50vw"
                 className="object-cover transition duration-500 group-hover:scale-110"
               />
-              {photo.caption && (
-                <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-ink/80 to-transparent p-3 text-left text-xs leading-snug text-white transition group-hover:translate-y-0">
-                  {photo.caption}
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -122,14 +123,9 @@ export default function GalleryWall({ groups }) {
           >
             <img
               src={visiblePhotos[lightboxIndex].image_url}
-              alt={visiblePhotos[lightboxIndex].caption || "科達文理補習班照片"}
+              alt="科達文理補習班照片"
               className="max-h-[85vh] rounded-xl object-contain"
             />
-            {visiblePhotos[lightboxIndex].caption && (
-              <p className="mt-3 text-center text-sm text-white/80">
-                {visiblePhotos[lightboxIndex].caption}
-              </p>
-            )}
           </div>
         </div>
       )}
